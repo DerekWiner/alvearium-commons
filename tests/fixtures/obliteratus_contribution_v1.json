@@ -1,0 +1,16 @@
+{
+  "contribution_schema_version": 1,
+  "timestamp": "20261028T010203Z",
+  "model_name": "example/model-7b",
+  "config_fingerprint": "abc12345",
+  "notes": "",
+  "telemetry": {
+    "schema_version": 2,
+    "method": "advanced",
+    "quality_metrics": {
+      "refusal_rate": 0.05,
+      "perplexity": 5.2,
+      "coherence": 0.8
+    }
+  }
+}
