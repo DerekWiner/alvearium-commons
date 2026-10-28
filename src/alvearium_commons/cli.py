@@ -118,6 +118,140 @@ def build_receipt(manifest_path: Path) -> dict[str, Any]:
     }
 
 
+
+def build_obliteratus_receipt(input_path: Path) -> dict[str, Any]:
+    """Import an OBLITERATUS community contribution as a Commons receipt.
+
+    The source JSON is treated as data only. This function does not import
+    OBLITERATUS, run model code, contact a network service, or verify claims.
+    The original contribution is hashed as a source artifact; selected
+    measurements are copied as reported values, not independently validated.
+    """
+    input_path = input_path.expanduser().resolve()
+    contribution = _read_json(input_path)
+
+    if contribution.get("contribution_schema_version") != 1:
+        raise ValueError("unsupported OBLITERATUS contribution schema version")
+    telemetry = contribution.get("telemetry")
+    if not isinstance(telemetry, dict) or telemetry.get("schema_version") != 2:
+        raise ValueError("expected an OBLITERATUS telemetry schema v2 record")
+
+    model_name = contribution.get("model_name")
+    timestamp = contribution.get("timestamp")
+    method = telemetry.get("method")
+    if not isinstance(model_name, str) or not model_name.strip():
+        raise ValueError("contribution field 'model_name' must be a non-empty string")
+    if not isinstance(timestamp, str) or not timestamp.strip():
+        raise ValueError("contribution field 'timestamp' must be a non-empty string")
+    if not isinstance(method, str) or not method.strip():
+        raise ValueError("contribution telemetry field 'method' must be a non-empty string")
+
+    raw_metrics = telemetry.get("quality_metrics", {})
+    if not isinstance(raw_metrics, dict):
+        raise ValueError("contribution telemetry 'quality_metrics' must be an object")
+    # Allowlist simple reported metrics. Do not copy arbitrary external JSON
+    # into the receipt's configuration.
+    metric_names = (
+        "refusal_rate", "invalid_count", "invalid_rate", "perplexity",
+        "coherence", "kl_divergence", "kl_budget", "perplexity_increase",
+        "capability_score", "capability_total_count", "capability_completed_count",
+        "degenerate_count", "time_seconds",
+    )
+    reported_metrics = {
+        key: raw_metrics[key]
+        for key in metric_names
+        if key in raw_metrics and (
+            raw_metrics[key] is None
+            or isinstance(raw_metrics[key], (str, int, float, bool))
+        )
+    }
+    raw_status = telemetry.get("quality_metric_status", {})
+    metric_status = {}
+    if isinstance(raw_status, dict):
+        metric_status = {
+            key: raw_status[key]
+            for key in metric_names
+            if key in raw_status and isinstance(raw_status[key], str)
+        }
+
+    method_config = telemetry.get("method_config", {})
+    if not isinstance(method_config, dict):
+        method_config = {}
+    model_info = telemetry.get("model", {})
+    if not isinstance(model_info, dict):
+        model_info = {}
+    environment = telemetry.get("environment", {})
+    if not isinstance(environment, dict):
+        environment = {}
+
+    digest, size = _sha256_file(input_path)
+    experiment = {
+        "title": f"Imported OBLITERATUS contribution for {model_name[:160]}",
+        "tool": "OBLITERATUS",
+        "method": method[:120],
+        "model": model_name[:240],
+        "configuration": {
+            "source_format": "OBLITERATUS community contribution",
+            "contribution_schema_version": 1,
+            "telemetry_schema_version": 2,
+            "source_timestamp": timestamp[:80],
+            "config_fingerprint": (
+                contribution.get("config_fingerprint")[:80]
+                if isinstance(contribution.get("config_fingerprint"), str) else None
+            ),
+            "reported_metrics": reported_metrics,
+            "reported_metric_status": metric_status,
+            "method_config": method_config,
+            "model_summary": {
+                key: model_info[key]
+                for key in ("architecture", "num_layers", "num_heads", "hidden_size", "total_params")
+                if key in model_info and isinstance(model_info[key], (str, int, float, bool, type(None)))
+            },
+        },
+    }
+    artifacts = [{
+        "path": input_path.name,
+        "sha256": digest,
+        "size_bytes": size,
+        "media_type": "application/json",
+        "description": "Original OBLITERATUS community contribution record",
+    }]
+    claims: list[str] = []
+    identity_payload = {
+        "experiment": experiment,
+        "artifacts": artifacts,
+        "claims": claims,
+    }
+    canonical = json.dumps(
+        identity_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+        allow_nan=False,
+    )
+    receipt_id = "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    # Retain only a small set of environment fields to avoid copying arbitrary
+    # values from an external contribution into the receipt.
+    environment_summary = {
+        key: environment[key]
+        for key in ("python_version", "platform", "device", "gpu_name", "cuda_version")
+        if key in environment and isinstance(environment[key], (str, int, float, bool, type(None)))
+    }
+    return {
+        "schema_version": "1.0",
+        "receipt_id": receipt_id,
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "experiment": experiment,
+        "environment": environment_summary,
+        "artifacts": artifacts,
+        "claims": claims,
+        "limitations": [
+            "Imported metrics are reported by the source contribution and have not been independently verified by Commons.",
+            "The source record hash identifies these exact JSON bytes; it does not prove the experiment ran as described.",
+            "This adapter does not load models, execute experiment code, or contact OBLITERATUS services.",
+            "Receipt generation does not establish scientific validity, safety, causality or independent replication.",
+        ],
+        "verification": [],
+    }
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="alvearium-commons",
@@ -127,10 +261,19 @@ def main(argv: list[str] | None = None) -> int:
     create_parser = subparsers.add_parser("create", help="create a receipt and hash declared local artifacts")
     create_parser.add_argument("--manifest", required=True, type=Path, help="path to the JSON manifest")
     create_parser.add_argument("--output", required=True, type=Path, help="path for the output receipt JSON")
+    import_parser = subparsers.add_parser(
+        "import-obliteratus",
+        help="convert an OBLITERATUS community contribution JSON file to a Commons receipt",
+    )
+    import_parser.add_argument("--input", required=True, type=Path, help="path to the source contribution JSON")
+    import_parser.add_argument("--output", required=True, type=Path, help="path for the output receipt JSON")
     args = parser.parse_args(argv)
 
     try:
-        receipt = build_receipt(args.manifest)
+        if args.command == "create":
+            receipt = build_receipt(args.manifest)
+        else:
+            receipt = build_obliteratus_receipt(args.input)
         output = args.output.expanduser()
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(
