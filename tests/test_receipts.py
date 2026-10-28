@@ -112,6 +112,22 @@ class ObliteratusImportTests(unittest.TestCase):
         self.assertEqual(receipt["verification"], [])
         self.assertTrue(any("not been independently verified" in x for x in receipt["limitations"]))
 
+    def test_imports_fixture_based_on_upstream_public_test_contract(self):
+        fixture = Path(__file__).parent / "fixtures" / "obliteratus_contribution_v1.json"
+        receipt = build_obliteratus_receipt(fixture)
+        self.assertEqual(receipt["experiment"]["tool"], "OBLITERATUS")
+        self.assertEqual(receipt["experiment"]["method"], "advanced")
+        self.assertEqual(receipt["experiment"]["model"], "example/model-7b")
+        self.assertEqual(
+            receipt["experiment"]["configuration"]["reported_metrics"]["refusal_rate"],
+            0.05,
+        )
+        self.assertEqual(
+            receipt["artifacts"][0]["sha256"],
+            hashlib.sha256(fixture.read_bytes()).hexdigest(),
+        )
+        self.assertTrue(any("not been independently verified" in x for x in receipt["limitations"]))
+
     def test_import_rejects_wrong_schema(self):
         self.source["contribution_schema_version"] = 99
         self.source_path.write_text(json.dumps(self.source), encoding="utf-8")
