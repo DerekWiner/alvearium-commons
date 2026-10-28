@@ -12,6 +12,9 @@ license = { file = "LICENSE" }
 authors = [{ name = "Alvearium Commons contributors" }]
 dependencies = []
 
+[project.optional-dependencies]
+test = ["jsonschema>=4.22,<5"]
+
 [project.scripts]
 alvearium-commons = "alvearium_commons.cli:main"
 
