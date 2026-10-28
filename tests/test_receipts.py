@@ -2,9 +2,20 @@ import hashlib
 import json
 import tempfile
 import unittest
+
+from jsonschema import Draft202012Validator
 from pathlib import Path
 
 from alvearium_commons.cli import build_obliteratus_receipt, build_receipt
+
+
+SCHEMA_PATH = Path(__file__).parents[1] / "schemas" / "research-receipt.schema.json"
+SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def assert_valid_receipt_schema(test_case, receipt):
+    errors = sorted(Draft202012Validator(SCHEMA).iter_errors(receipt), key=lambda error: list(error.path))
+    test_case.assertEqual(errors, [], "\\n".join(error.message for error in errors))
 
 
 class BuildReceiptTests(unittest.TestCase):
@@ -33,6 +44,7 @@ class BuildReceiptTests(unittest.TestCase):
         self.assertEqual(artifact["sha256"], expected)
         self.assertEqual(artifact["size_bytes"], len(b"hello research\n"))
         self.assertEqual(artifact["path"], "artifacts/result.txt")
+        assert_valid_receipt_schema(self, receipt)
 
     def test_receipt_id_is_stable_for_same_content(self):
         first = build_receipt(self.manifest_path)
@@ -111,6 +123,7 @@ class ObliteratusImportTests(unittest.TestCase):
         self.assertNotIn("unrecognised_metric", config["reported_metrics"])
         self.assertEqual(receipt["verification"], [])
         self.assertTrue(any("not been independently verified" in x for x in receipt["limitations"]))
+        assert_valid_receipt_schema(self, receipt)
 
     def test_imports_fixture_based_on_upstream_public_test_contract(self):
         fixture = Path(__file__).parent / "fixtures" / "obliteratus_contribution_v1.json"
