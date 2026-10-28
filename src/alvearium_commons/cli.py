@@ -174,9 +174,25 @@ def build_obliteratus_receipt(input_path: Path) -> dict[str, Any]:
             if key in raw_status and isinstance(raw_status[key], str)
         }
 
-    method_config = telemetry.get("method_config", {})
-    if not isinstance(method_config, dict):
-        method_config = {}
+    raw_method_config = telemetry.get("method_config", {})
+    if not isinstance(raw_method_config, dict):
+        raw_method_config = {}
+    allowed_config_keys = {
+        "n_directions", "norm_preserve", "regularization", "refinement_passes",
+        "project_biases", "use_chat_template", "use_whitened_svd",
+        "true_iterative_refinement", "use_jailbreak_contrast",
+        "layer_adaptive_strength", "attention_head_surgery",
+        "safety_neuron_masking", "per_expert_directions", "use_sae_features",
+        "invert_refusal", "project_embeddings", "embed_regularization",
+        "activation_steering", "steering_strength", "expert_transplant",
+        "transplant_blend", "reflection_strength",
+    }
+    method_config = {
+        key: value
+        for key, value in raw_method_config.items()
+        if key in allowed_config_keys
+        and isinstance(value, (str, int, float, bool, type(None)))
+    }
     model_info = telemetry.get("model", {})
     if not isinstance(model_info, dict):
         model_info = {}
