@@ -12,7 +12,7 @@ Provide a small, inspectable provenance layer that can sit beside existing AI re
 4. The CLI writes a receipt containing the manifest details, artifact hashes and receipt-generation metadata.
 5. The researcher can share the receipt and artifacts according to their own privacy and licensing decisions.
 
-The initial CLI must not execute commands from the manifest, download remote content, upload files or modify model artifacts.
+The CLI must not execute commands from a manifest or imported record, download remote content, upload files or modify model artifacts. The OBLITERATUS importer treats the contribution as untrusted data, does not import the OBLITERATUS package, and does not copy arbitrary free-text notes into the receipt.
 
 ## Trust boundaries
 
@@ -31,6 +31,7 @@ Values entered by a researcher remain claims unless separately verified. Indepen
 - **Manifest** — researcher-authored description of a run.
 - **Receipt schema** — versioned JSON structure for provenance.
 - **Local CLI** — validates inputs, hashes local artifacts and writes a receipt.
+- **OBLITERATUS importer** — accepts the existing community contribution envelope, hashes the source JSON and maps a small allowlist of reported metrics into a Commons receipt.
 - **Adapters** — future optional connectors to existing evaluation and model-intervention tools.
 - **Verification records** — a future format for independent checks, kept distinct from the original receipt.
 
@@ -41,7 +42,7 @@ No orchestration service, agent marketplace, token, blockchain dependency, autom
 ## Evolution path
 
 1. Establish a stable receipt schema and tested local CLI.
-2. Test the format against one existing research workflow.
-3. Gather feedback from researchers and revise the schema.
-4. Add a narrow adapter only when it removes real integration friction.
+2. Import an existing OBLITERATUS contribution record and preserve a hash of the original file.
+3. Test the mapping against real exported records and gather researcher feedback.
+4. Add a narrow adapter for another tool only when it removes real integration friction.
 5. Explore optional signing or external anchoring after the local workflow is useful on its own.
