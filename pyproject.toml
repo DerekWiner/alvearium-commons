@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alvearium-commons"
+version = "0.1.0"
+description = "Local-first provenance receipts for AI research workflows"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Alvearium Commons contributors" }]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["jsonschema>=4.22,<5"]
+
+[project.scripts]
+alvearium-commons = "alvearium_commons.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
