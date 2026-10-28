@@ -25,14 +25,15 @@ The first milestone is a local, dependency-free Python utility that creates a pr
 
 ## Quick start
 
-Requirements: Python 3.10 or newer. No third-party dependencies are planned for the initial CLI.
+Requirements: Python 3.10 or newer.
 
 ```bash
+python -m pip install -e .
 python -m alvearium_commons create --manifest examples/experiment.json --output receipt.json
 python -m unittest discover -s tests -v
 ```
 
-The CLI and tests are being established in the initial implementation. Until they are present on your branch, treat these commands as the intended interface rather than a released package.
+The example manifest points to a small placeholder artifact in `examples/artifacts/`. It is not a real experiment result. The CLI is an early prototype and should be treated as such.
 
 ## Repository layout
 
