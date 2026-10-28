@@ -1,0 +1,35 @@
+{
+  "title": "Example activation analysis",
+  "tool": "replace-with-tool-name",
+  "tool_version": "replace-with-version",
+  "model": "replace-with-model-identifier",
+  "model_revision": null,
+  "dataset": null,
+  "dataset_revision": null,
+  "method": "Describe the procedure, intervention and evaluation protocol here.",
+  "configuration": {
+    "seed": 1234,
+    "notes": "Illustrative example only; no experiment was run."
+  },
+  "started_at": null,
+  "completed_at": null,
+  "environment": {
+    "os": "replace-with-operating-system",
+    "runtime": "replace-with-runtime",
+    "hardware": null
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/results.json",
+      "media_type": "application/json",
+      "description": "Example output file, replace with a real local artifact."
+    }
+  ],
+  "claims": [
+    "This example is a template, not a reported result."
+  ],
+  "limitations": [
+    "No experiment was run for this example.",
+    "Replace all placeholder values before using it."
+  ]
+}
